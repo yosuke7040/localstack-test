@@ -1,0 +1,36 @@
+version: '3'
+
+vars:
+  FUNCTION_NAME: CSVProcessingToSQS
+  S3_BUCKET: lambda-code-bucket
+
+tasks:
+  build:
+    cmds:
+      - |
+        GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o bootstrap main.go
+        zip {{.FUNCTION_NAME}}.zip bootstrap
+    silent: true
+
+  upload:
+    cmds:
+      - awslocal s3 cp {{.FUNCTION_NAME}}.zip s3://{{.S3_BUCKET}}/{{.FUNCTION_NAME}}.zip
+    silent: true
+
+  update_lambda:
+    cmds:
+      - awslocal lambda update-function-code --function-name {{.FUNCTION_NAME}} --s3-bucket {{.S3_BUCKET}} --s3-key {{.FUNCTION_NAME}}.zip
+    silent: true
+
+  deploy:
+    deps: [build, upload, update_lambda]
+
+  log-tail:
+    cmds:
+      - awslocal logs tail /aws/lambda/{{.FUNCTION_NAME}} --follow
+    silent: true
+
+  invoke:
+    cmds:
+      - awslocal lambda invoke --function-name {{.FUNCTION_NAME}} outputfile.txt
+    silent: true
