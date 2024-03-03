@@ -2,3 +2,5 @@
 *.tfstate*
 
 volume
+
+outputfile.txt
