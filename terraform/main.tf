@@ -89,13 +89,15 @@ resource "aws_lambda_function" "csv_processing_to_sqs" {
   runtime       = "provided.al2"
   role          = aws_iam_role.lambda_execution_role.arn
   s3_bucket     = aws_s3_bucket.lambda_code.bucket
-  s3_key        = "lambda_code.zip"
+  s3_key        = "CSVProcessingToSQS.zip"
 
   environment {
     variables = {
       SQS_QUEUE_URL = aws_sqs_queue.inventory_updates_queue.url
     }
   }
+
+  depends_on = [terraform_data.monitoring_build["CSVProcessingToSQS"]]
 }
 
 resource "aws_lambda_function" "sqs_to_dynamodb" {
@@ -104,19 +106,44 @@ resource "aws_lambda_function" "sqs_to_dynamodb" {
   runtime       = "provided.al2"
   role          = aws_iam_role.lambda_execution_role.arn
   s3_bucket     = aws_s3_bucket.lambda_code.bucket
-  s3_key        = "lambda_code.zip"
+  s3_key        = "SQSToDynamoDB.zip"
 
   environment {
     variables = {
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.inventory_updates.name
     }
   }
+  depends_on = [terraform_data.monitoring_build["SQSToDynamoDB"]]
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   event_source_arn = aws_sqs_queue.inventory_updates_queue.arn
   function_name    = aws_lambda_function.sqs_to_dynamodb.arn
   batch_size       = 10
+}
+
+resource "terraform_data" "monitoring_build" {
+  for_each = toset([
+    "CSVProcessingToSQS",
+    "SQSToDynamoDB"
+  ])
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/../lambda/${each.key}"
+    command     = "GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o bootstrap main.go && zip ${each.key}.zip bootstrap"
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/../lambda/${each.key}"
+    command     = "awslocal s3 cp ${each.key}.zip s3://${aws_s3_bucket.lambda_code.id}/${each.key}.zip"
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/../lambda/${each.key}"
+    command     = "awslocal lambda update-function-code --function-name ${each.key} --s3-bucket ${aws_s3_bucket.lambda_code.id} --s3-key ${each.key}.zip"
+  }
+
+  depends_on = [aws_s3_bucket.lambda_code]
 }
 
 ################################
@@ -139,9 +166,19 @@ resource "aws_s3_bucket" "lambda_code" {
   bucket = "lambda-code-bucket"
 }
 
-resource "aws_s3_object" "lambda_code_object" {
-  bucket = aws_s3_bucket.lambda_code.bucket
-  key    = "lambda_code.zip"
-  source = "./dummy.zip"
-  # source = "${path.module}/../lambda/lambda_code.zip"
+# resource "aws_s3_object" "lambda_code_object" {
+#   bucket = aws_s3_bucket.lambda_code.bucket
+#   key    = "lambda_code.zip"
+#   source = "./dummy.zip"
+#   # source = "${path.module}/../lambda/lambda_code.zip"
+# }
+
+################################
+############# Outputs ###########
+################################
+output "s3" {
+  value = {
+    inventory_updates_bucket = aws_s3_bucket.inventory_updates_bucket.id
+    lambda_code_bucket       = aws_s3_bucket.lambda_code.id
+  }
 }
