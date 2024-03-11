@@ -10,9 +10,32 @@ services:
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
       # - DOCKER_HOST=unix:///var/run/docker.sock
+      # - SERVICES=s3,dynamodb,lambda,cloudwatch,logs,iam
       - DEBUG=${DEBUG:-0}
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     volumes:
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./scripts:/etc/localstack/init/ready.d"
       - "./data:/home/localstack/data"
+    networks:
+      - default
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    environment:
+      - DYNAMO_ENDPOINT=localstack:4566
+      - AWS_REGION=us-east-1
+    ports:
+      - "8001:8001"
+    depends_on:
+      - localstack
+
+volumes:
+  localstack-data:
+
+networks:
+  default:
+    name: localstack
+    driver: bridge

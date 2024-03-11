@@ -85,35 +85,45 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
 ################################
 resource "aws_lambda_function" "csv_processing_to_sqs" {
   function_name = "CSVProcessingToSQS"
-  handler       = "main"
-  runtime       = "provided.al2"
-  role          = aws_iam_role.lambda_execution_role.arn
-  s3_bucket     = aws_s3_bucket.lambda_code.bucket
-  s3_key        = "CSVProcessingToSQS.zip"
+  # handler       = "main.handler"
+  # runtime       = "python3.9"
+  handler   = "main"
+  runtime   = "provided.al2"
+  role      = aws_iam_role.lambda_execution_role.arn
+  s3_bucket = aws_s3_bucket.lambda_code.bucket
+  s3_key    = "CSVProcessingToSQS.zip"
 
   environment {
     variables = {
-      SQS_QUEUE_URL = aws_sqs_queue.inventory_updates_queue.url
+      SQS_QUEUE_URL         = aws_sqs_queue.inventory_updates_queue.url
+      AWS_ACCESS_KEY_ID     = "test"
+      AWS_SECRET_ACCESS_KEY = "test"
     }
   }
 
-  depends_on = [terraform_data.monitoring_build["CSVProcessingToSQS"]]
+  depends_on = [
+    aws_s3_bucket.lambda_code,
+  ]
 }
 
 resource "aws_lambda_function" "sqs_to_dynamodb" {
   function_name = "SQSToDynamoDB"
-  handler       = "main"
-  runtime       = "provided.al2"
-  role          = aws_iam_role.lambda_execution_role.arn
-  s3_bucket     = aws_s3_bucket.lambda_code.bucket
-  s3_key        = "SQSToDynamoDB.zip"
+  # handler       = "main.handler"
+  # runtime       = "python3.9"
+  handler   = "main"
+  runtime   = "provided.al2"
+  role      = aws_iam_role.lambda_execution_role.arn
+  s3_bucket = aws_s3_bucket.lambda_code.bucket
+  s3_key    = "SQSToDynamoDB.zip"
 
   environment {
     variables = {
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.inventory_updates.name
     }
   }
-  depends_on = [terraform_data.monitoring_build["SQSToDynamoDB"]]
+  depends_on = [
+    aws_s3_bucket.lambda_code,
+  ]
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
@@ -122,7 +132,7 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   batch_size       = 10
 }
 
-resource "terraform_data" "monitoring_build" {
+resource "terraform_data" "lambda_build" {
   for_each = toset([
     "CSVProcessingToSQS",
     "SQSToDynamoDB"
@@ -135,15 +145,18 @@ resource "terraform_data" "monitoring_build" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../lambda/${each.key}"
-    command     = "awslocal s3 cp ${each.key}.zip s3://${aws_s3_bucket.lambda_code.id}/${each.key}.zip"
+    command     = "awslocal --profile localstack s3 cp ${each.key}.zip s3://${aws_s3_bucket.lambda_code.id}/${each.key}.zip"
   }
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../lambda/${each.key}"
-    command     = "awslocal lambda update-function-code --function-name ${each.key} --s3-bucket ${aws_s3_bucket.lambda_code.id} --s3-key ${each.key}.zip"
+    command     = "awslocal --profile localstack lambda update-function-code --function-name ${each.key} --s3-bucket ${aws_s3_bucket.lambda_code.id} --s3-key ${each.key}.zip"
   }
 
-  depends_on = [aws_s3_bucket.lambda_code]
+  depends_on = [
+    aws_lambda_function.csv_processing_to_sqs,
+    aws_lambda_function.sqs_to_dynamodb,
+  ]
 }
 
 ################################
@@ -159,19 +172,24 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 }
 
 resource "aws_s3_bucket" "inventory_updates_bucket" {
-  bucket = "inventory-updates-bucket"
+  bucket        = "inventory-updates-bucket"
+  force_destroy = true
 }
 
 resource "aws_s3_bucket" "lambda_code" {
-  bucket = "lambda-code-bucket"
+  bucket        = "lambda-code-bucket"
+  force_destroy = true
 }
 
-# resource "aws_s3_object" "lambda_code_object" {
-#   bucket = aws_s3_bucket.lambda_code.bucket
-#   key    = "lambda_code.zip"
-#   source = "./dummy.zip"
-#   # source = "${path.module}/../lambda/lambda_code.zip"
-# }
+resource "aws_s3_object" "lambda_code_object" {
+  for_each = toset([
+    "CSVProcessingToSQS",
+    "SQSToDynamoDB"
+  ])
+  bucket = aws_s3_bucket.lambda_code.bucket
+  key    = "${each.key}.zip"
+  source = "./dummy.zip"
+}
 
 ################################
 ############# Outputs ###########

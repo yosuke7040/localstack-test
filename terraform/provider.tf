@@ -12,9 +12,10 @@ terraform {
 }
 
 provider "aws" {
-  region     = "us-east-1"
-  access_key = "dummy"
-  secret_key = "dummy"
+  region = "us-east-1"
+  # profile    = "localstack"
+  access_key = "test"
+  secret_key = "test"
 
   s3_use_path_style           = true
   skip_credentials_validation = true

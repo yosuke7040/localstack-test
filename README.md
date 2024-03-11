@@ -5,19 +5,19 @@
 - golang 1.22
 - Terraform 1.6以上
 - Task(<https://taskfile.dev/>)
+- AWS CLI(awslocal)
+- LocalStack CLI
 
-- CLI（Mac）
+## Resources Deploy
 
 ```bash
-brew install localstack/tap/localstack-cli
-pip3 install awscli-local
+cd terraform
+terarform init
+terraform apply
 ```
 
-## Command memo
+## Test
 
 ```bash
-curl -s localhost:4566/_localstack/init | jq .
-
-awslocal s3 mb s3://localstack-bucket
-awslocal s3 ls
+awslocal s3 cp data/sample.csv s3://inventory-updates-bucket
 ```
