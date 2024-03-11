@@ -2,5 +2,7 @@
 *.tfstate*
 
 volume
-
+build/
+bootstrap
 outputfile.txt
+.envrc
