@@ -1,37 +1,5 @@
 version: '3'
 
-# vars:
-#   BUILD_DIR: ./build
-#   ZIP_FILE: CSVProcessingToSQS.zip
-#   FUNCTION_NAME: CSVProcessingToSQS
-#   S3_BUCKET: lambda-code-bucket
-
-# tasks:
-#   setup:
-#     desc: Install python dependencies
-#     cmds:
-#       - pip3 install -r requirements.txt -t {{.BUILD_DIR}}/
-
-#   build:
-#     desc: Copy python files to the build directory
-#     cmds:
-#       - mkdir -p {{.BUILD_DIR}}
-#       - cp -r *.py {{.BUILD_DIR}}
-
-#   package:
-#     desc: Package the application into a ZIP file
-#     cmds:
-#       - task: setup
-#       - task: build
-#       - cd {{.BUILD_DIR}} && zip -r ../{{.ZIP_FILE}} .
-
-#   deploy:
-#     desc: Deploy the package to AWS Lambda
-#     cmds:
-#       - awslocal s3 cp {{.FUNCTION_NAME}}.zip s3://{{.S3_BUCKET}}/{{.FUNCTION_NAME}}.zip
-#       - awslocal lambda update-function-code --function-name {{.FUNCTION_NAME}} --s3-bucket {{.S3_BUCKET}} --s3-key {{.FUNCTION_NAME}}.zip
-#     deps: [package]
-
 vars:
   FUNCTION_NAME: CSVProcessingToSQS
   S3_BUCKET: lambda-code-bucket
