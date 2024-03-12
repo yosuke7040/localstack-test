@@ -12,8 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
-  # profile    = "localstack"
+  region     = "us-east-1"
   access_key = "test"
   secret_key = "test"
 

@@ -104,7 +104,6 @@ func handleRequest(event events.S3Event) {
 			}
 
 			jsonMessage, _ := json.Marshal(messageBody)
-			// jsonMessage, _ := json.Marshal(record)
 			slog.Info("Sending message", slog.String("jsonMessage", string(jsonMessage)))
 			messageBatch = append(messageBatch, types.SendMessageBatchRequestEntry{
 				Id:          aws.String(strconv.Itoa(i + 1)),

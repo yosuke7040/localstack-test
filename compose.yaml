@@ -10,7 +10,6 @@ services:
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
       # - DOCKER_HOST=unix:///var/run/docker.sock
-      # - SERVICES=s3,dynamodb,lambda,cloudwatch,logs,iam
       - DEBUG=${DEBUG:-0}
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=test

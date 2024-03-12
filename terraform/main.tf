@@ -85,13 +85,11 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
 ################################
 resource "aws_lambda_function" "csv_processing_to_sqs" {
   function_name = "CSVProcessingToSQS"
-  # handler       = "main.handler"
-  # runtime       = "python3.9"
-  handler   = "main"
-  runtime   = "provided.al2"
-  role      = aws_iam_role.lambda_execution_role.arn
-  s3_bucket = aws_s3_bucket.lambda_code.bucket
-  s3_key    = "CSVProcessingToSQS.zip"
+  handler       = "main"
+  runtime       = "provided.al2"
+  role          = aws_iam_role.lambda_execution_role.arn
+  s3_bucket     = aws_s3_bucket.lambda_code.bucket
+  s3_key        = "CSVProcessingToSQS.zip"
 
   environment {
     variables = {
@@ -108,13 +106,11 @@ resource "aws_lambda_function" "csv_processing_to_sqs" {
 
 resource "aws_lambda_function" "sqs_to_dynamodb" {
   function_name = "SQSToDynamoDB"
-  # handler       = "main.handler"
-  # runtime       = "python3.9"
-  handler   = "main"
-  runtime   = "provided.al2"
-  role      = aws_iam_role.lambda_execution_role.arn
-  s3_bucket = aws_s3_bucket.lambda_code.bucket
-  s3_key    = "SQSToDynamoDB.zip"
+  handler       = "main"
+  runtime       = "provided.al2"
+  role          = aws_iam_role.lambda_execution_role.arn
+  s3_bucket     = aws_s3_bucket.lambda_code.bucket
+  s3_key        = "SQSToDynamoDB.zip"
 
   environment {
     variables = {
